@@ -29,7 +29,7 @@ export async function answerWithCitations(
       role: "user",
       content: `Question: ${query}\n\nSources:\n${context}\n\nProvide a comprehensive answer based on these sources. Return strictly valid JSON in this format:
         {
-          "answer": "Your detailed answer here, referencing sources and separating concepts with unformatted titles and line breaks.",
+          "answer": "Your detailed answer here, referencing sources and separating concepts with unformatted titles and line breaks to clearly distinguish them.",
           "citations": [{"id": "source_id", "url": "https://...", "title": "Source Title"}]
         }`,
     },

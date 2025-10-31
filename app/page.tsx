@@ -12,7 +12,10 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<Resp | null>(null);
   const [results, setResults] = useState<Result[]>([]);
+  const [images, setImages] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const [hideSearch, setHideSearch] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -20,6 +23,7 @@ export default function Home() {
     setError(null);
     setResp(null);
     setResults([]);
+    setImages([]);
     try {
       const r = await fetch("/api/ask", {
         method: "POST",
@@ -28,8 +32,12 @@ export default function Home() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed");
-      setResp(data.aggregate);
+      setImages(data.images);
+      setHideSearch(true);
       setResults(data.web);
+      setResp(data.aggregate);
+      // note images not being returned form general web
+      // console.log("RES", JSON.stringify(data.web[0]));
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -40,9 +48,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-950 text-white font-sans">
       <div className="mx-auto min-h-screen flex max-w-3xl flex-col items-center justify-center px-4 py-24 sm:py-36">
-        <h1 className="mb-8 text-4xl font-semibold tracking-tight sm:text-5xl">
-          perplexity
-        </h1>
+        {
+          !hideSearch ? 
+            <h1 className="mb-8 text-4xl font-semibold tracking-tight sm:text-5xl">
+              perplexity
+            </h1>
+          : null
+        }
         {/* <Image
           className="dark:invert"
           src="/next.svg"
@@ -52,24 +64,72 @@ export default function Home() {
           priority
         /> */}
         
-        <form onSubmit={onSubmit} className="flex gap-2">
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Ask me anything..."
-            className="flex-1 border rounded px-3 py-2"
-          />
-          <button
-            type="submit"
-            disabled={!query || loading}
-            className="px-4 py-2 bg-black text-white rounded disabled:opacity-50"
-          >
-            {loading ? "Thinking..." : "Ask"}
-          </button>
-        </form>
+        {
+          !hideSearch ?
+          <form onSubmit={onSubmit} className="flex gap-2">
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Ask me anything..."
+              className="flex-1 border rounded px-3 py-2"
+            />
+            <button
+              type="submit"
+              disabled={!query || loading}
+              className="px-4 py-2 bg-black text-white rounded disabled:opacity-50"
+            >
+              {loading ? "Thinking..." : "Ask"}
+            </button>
+          </form> :
+          <div className="flex flex-row items-center">
+            <p className="text-gray-400">You asked: {query}</p>
+            <button
+              onClick={() => {
+                setHideSearch(false);
+                setResp(null);
+                setResults([]);
+                setImages([]);
+                setQuery("");
+              }}
+              className="px-4 py-2 text-white text-xs font-semibold rounded bg-amber-500 ml-4"
+            >
+              New Question
+            </button>
+          </div>
+          }
 
         {error && <p className="text-red-600 mt-2">Error: {error}</p>}
 
+        {/* Image Results */}
+        {!!images.length && (
+          <div className="mt-6">
+            {/* hide scrollbar (optional) */}
+            <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-3 min-w-max">
+                {images.map((img: any) => (
+                  <a
+                    key={img.id}
+                    href={img.link || "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="relative h-28 w-44 flex-none overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900"
+                  >
+                    <Image
+                      src={img.thumbnail}
+                      alt={img.title || "image"}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                      sizes="176px"  // matches w-44
+                    />
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* WEB results */}
         {!!results.length && (
           <div className="-mx-8 mt-6 w-[calc(100%+16rem)] grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">            
             {results.slice(0, 5).map((r) => (
@@ -101,9 +161,11 @@ export default function Home() {
             ))}
           </div>
         )}
+
+        {/* AGGREGATED / AI results */}
         {resp && (
           <section className="space-y-3 pt-6">
-            <p className="whitespace-pre-wrap leading-relaxed">{resp.answer}</p>
+            <p className="whitespace-pre-wrap leading-normal">{resp.answer}</p>
             <div className="text-sm text-gray-600">
               Sources:&nbsp;
               {resp.citations.map((c, i) => (
