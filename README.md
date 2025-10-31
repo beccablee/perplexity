@@ -23,6 +23,7 @@ In this application you can explore the following functionality:
 
 - Type and submit a query of any sorts
 - Display top web results on the topic
+- Displays top image results
 - AI response powered by Groq
 - Direct citations
 
